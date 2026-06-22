@@ -42,7 +42,7 @@ elif "__file__" in globals():
 else:
     APP_DIR = Path.cwd()
 
-APP_VERSION = "1.0.0"   # Windows build
+APP_VERSION = "1.0.1"   # Windows build
 SITE        = "https://www.zhmotions.com"
 WIN_DL      = "https://zhmotions.com/pccleaner/download"
 # Same update system as ZH Downloader: zhmotions.com FIRST, GitHub as fallback.
@@ -79,8 +79,8 @@ C = {
     "TEXT":"#2c1014", "MUTED":"#9a767c",   # darkest maroon / muted maroon
     "GREEN":"#7A1F2B", "RED":"#9c2a3a",
 }
-UIFONT = "SF Pro Text"
-MONO   = "SF Mono"
+UIFONT = "Segoe UI"
+MONO   = "Consolas"
 
 # ── Helpers ─────────────────────────────────────────────────────────────
 def human(n):
@@ -358,7 +358,7 @@ class Cleaner(tk.Tk):
                ("maint","Maintenance","🛠"), ("license","Pro","⭐"), ("help","Help & About","ℹ️")]
         for key, label, ico in nav:
             b = tk.Label(side, text=f"   {ico}   {label}", bg=C["SIDEBAR"], fg=C["TEXT"],
-                         font=(UIFONT, 13), anchor="w", cursor="pointinghand", padx=12, pady=11)
+                         font=(UIFONT, 13), anchor="w", cursor="hand2", padx=12, pady=11)
             b.pack(fill="x", padx=8, pady=2)
             b.bind("<Button-1>", lambda e,k=key: self.show_view(k))
             b.bind("<Enter>", lambda e,k=key,w=b: (w.config(bg="#e3d0d4") if k!=self.active_view else None))
@@ -400,7 +400,7 @@ class Cleaner(tk.Tk):
             tk.Label(ban, text="Lets ZH PC Cleaner read & clear all caches.", bg=C["SURF2"],
                      fg=C["MUTED"], anchor="w", font=(UIFONT, 10)).grid(row=1, column=1, sticky="w", pady=(0,10))
             tk.Button(ban, text="Open Settings", command=self.open_fda, highlightbackground=C["SURF2"],
-                      fg=C["MAROON"], relief="flat", bd=0, padx=12, pady=5, cursor="pointinghand",
+                      fg=C["MAROON"], relief="flat", bd=0, padx=12, pady=5, cursor="hand2",
                       font=(UIFONT, 11, "bold")).grid(row=0, column=2, rowspan=2, padx=12)
 
         # Gauge
@@ -468,7 +468,7 @@ class Cleaner(tk.Tk):
                   "danger":(C["RED"], "#fff")}
         bg, fg = styles[kind]
         return tk.Button(parent, text=text, command=cmd, bg=bg, fg=fg, relief="flat", bd=0,
-                         padx=16, pady=9, cursor="pointinghand", activebackground=C["GOLD2"],
+                         padx=16, pady=9, cursor="hand2", activebackground=C["GOLD2"],
                          font=(UIFONT, 12, "bold"))
 
     def open_fda(self):
@@ -681,7 +681,7 @@ class Cleaner(tk.Tk):
                      font=(MONO, 11)).grid(row=0, column=2, rowspan=2, sticky="e", padx=12)
             tk.Button(row, text="↗ Reveal", command=lambda p=fp: self.reveal_in_finder(p),
                       bg=C["SURF2"], fg=C["TEXT"], relief="flat", bd=0, padx=10, pady=3,
-                      cursor="pointinghand", font=(UIFONT, 10), activebackground=C["MAROON2"]
+                      cursor="hand2", font=(UIFONT, 10), activebackground=C["MAROON2"]
                       ).grid(row=0, column=3, rowspan=2, padx=(4,8))
 
     def reveal_in_finder(self, path):
@@ -752,7 +752,7 @@ class Cleaner(tk.Tk):
                      font=(UIFONT, 12)).grid(row=0, column=0, sticky="w", pady=4)
             tk.Button(row, text="Uninstall", command=lambda n=nm,p=path: self.uninstall_app(n,p),
                       bg=C["SURF2"], fg=C["MAROON"], relief="flat", bd=0, padx=10, pady=3,
-                      cursor="pointinghand", font=(UIFONT, 10, "bold")).grid(row=0, column=1, padx=6)
+                      cursor="hand2", font=(UIFONT, 10, "bold")).grid(row=0, column=1, padx=6)
 
     def uninstall_app(self, name, path):
         if self.busy: return
@@ -992,7 +992,7 @@ class Cleaner(tk.Tk):
         self.key_entry.pack(side="left", fill="x", expand=True, ipady=5, padx=(0,8))
         self._btn(row, "Activate", lambda: self.activate_license(self.key_entry.get()), "gold").pack(side="right")
         buy = tk.Label(self.key_section, text="Get a license at zhmotions.com/pccleaner", bg=C["SURF"],
-                       fg=C["MAROON2"], font=(UIFONT, 11, "underline"), cursor="pointinghand")
+                       fg=C["MAROON2"], font=(UIFONT, 11, "underline"), cursor="hand2")
         buy.pack(anchor="w", padx=14, pady=14)
         buy.bind("<Button-1>", lambda e: os.startfile(SITE+"/pccleaner"))
 
@@ -1087,7 +1087,7 @@ class Cleaner(tk.Tk):
         tk.Label(col, text="Made by ZH Motions", bg=C["SURF"], fg=C["MUTED"],
                  font=(UIFONT, 10)).pack(anchor="w")
         link = tk.Label(col, text="zhmotions.com", bg=C["SURF"], fg=C["MAROON2"],
-                        font=(UIFONT, 10, "underline"), cursor="pointinghand")
+                        font=(UIFONT, 10, "underline"), cursor="hand2")
         link.pack(anchor="w")
         link.bind("<Button-1>", lambda e: os.startfile(SITE))
         self._btn(col, "↻  Check for Updates", lambda: self.check_updates(False), "gold").pack(anchor="w", pady=(8,0))
@@ -1133,6 +1133,19 @@ class Cleaner(tk.Tk):
 
 
 if __name__ == "__main__":
-    if sys.platform != "darwin":
-        print("ZH Cleaner is built for macOS.")
-    Cleaner().mainloop()
+    try:
+        Cleaner().mainloop()
+    except Exception:
+        import traceback, tempfile
+        err = traceback.format_exc()
+        try:
+            with open(os.path.join(tempfile.gettempdir(), "zh-pc-cleaner-error.log"), "w", encoding="utf-8") as fh:
+                fh.write(err)
+        except Exception:
+            pass
+        try:
+            from tkinter import messagebox as _mb
+            _mb.showerror("ZH PC Cleaner — startup error", err[-1500:])
+        except Exception:
+            pass
+        raise
