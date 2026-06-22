@@ -19,6 +19,7 @@ jobs:
       - name: Install deps
         run: python -m pip install --upgrade pyinstaller certifi pillow
       - name: Icon (.ico)
+        shell: bash
         run: |
           python - <<'PY'
           from PIL import Image
