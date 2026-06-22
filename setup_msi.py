@@ -2,7 +2,7 @@ import sys
 from cx_Freeze import setup, Executable
 
 APP = "ZH PC Cleaner"
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 
 build_exe_options = {
     "packages": ["tkinter", "ctypes", "ssl", "urllib", "hashlib", "json", "threading", "queue", "shutil"],

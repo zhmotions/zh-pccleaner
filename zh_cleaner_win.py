@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-ZH Cleaner — a safe Mac cleaner (pro UI, ZH Motions theme)
+ZH PC Cleaner — a safe Windows cleaner (pro UI, ZH Motions theme)
 
 Cleans: System junk (caches/logs), Browser caches, Dev junk, Large/old files.
 Safety:
   • Only a hard-coded whitelist of known-safe user paths.
   • Cache/log contents are deleted (OS/apps regenerate them).
-  • Your own files (large-file finder) move to the macOS Trash (recoverable).
+  • Your own files (large-file finder) move to the Recycle Bin (recoverable).
   • Auto-scans on launch and shows sizes BEFORE you clean.
 """
 
@@ -42,7 +42,7 @@ elif "__file__" in globals():
 else:
     APP_DIR = Path.cwd()
 
-APP_VERSION = "1.0.1"   # Windows build
+APP_VERSION = "1.0.2"   # Windows build
 SITE        = "https://www.zhmotions.com"
 WIN_DL      = "https://zhmotions.com/pccleaner/download"
 # Same update system as ZH Downloader: zhmotions.com FIRST, GitHub as fallback.
@@ -57,8 +57,8 @@ LIC_FILE      = HOME/".config/zhmaccleaner/license.json"
 PRO_FEATURES  = {"uninstall", "dupes", "maint"}     # locked until Pro
 GRACE_DAYS    = 14                                  # offline grace after last good check
 
-UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
-      "(KHTML, like Gecko) Version/17.0 Safari/605.1.15")   # Cloudflare blocks bot UAs
+UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+      "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")   # Cloudflare blocks bot UAs
 
 def device_id():
     uid = "unknown"
@@ -276,7 +276,7 @@ BIG_THRESHOLD = 100 * 1024 * 1024
 SEG = {"system":"#5E1622", "browser":"#8A2A38", "dev":"#B5606A"}
 
 CARD_HELP = {
-    "system":  "App caches & log files macOS rebuilds automatically. Safe to delete — frees space, apps just re-cache.",
+    "system":  "App caches & temp files Windows rebuilds automatically. Safe to delete — frees space, apps just re-cache.",
     "browser": "Cached web data for Chrome/Safari/Firefox. You stay logged in; pages just re-download once.",
     "dev":     "Build caches from npm, pip, Homebrew, Xcode. Safe — they regenerate on next build/install.",
 }
@@ -343,7 +343,7 @@ class Cleaner(tk.Tk):
         name = tk.Frame(head, bg=C["HEADER"]); name.pack(side="left")
         tk.Label(name, text="ZH PC Cleaner", bg=C["HEADER"], fg=C["MAROON"],
                  font=(UIFONT, 19, "bold")).pack(anchor="w")
-        tk.Label(name, text="keep your Mac clean", bg=C["HEADER"], fg=C["MUTED"],
+        tk.Label(name, text="keep your PC clean", bg=C["HEADER"], fg=C["MUTED"],
                  font=(UIFONT, 10)).pack(anchor="w", pady=(1,0))
         # subtle bottom divider
         tk.Frame(self, bg=C["BORDER"], height=1).pack(fill="x")
@@ -464,11 +464,11 @@ class Cleaner(tk.Tk):
         self.trash_sel_btn.pack(anchor="e", padx=22, pady=10)
 
     def _btn(self, parent, text, cmd, kind="gold"):
-        styles = {"gold":(C["GOLD"], "#3a2410"), "ghost":(C["SURF2"], C["TEXT"]),
+        styles = {"gold":(C["GOLD"], "#ffffff"), "ghost":(C["SURF2"], C["TEXT"]),
                   "danger":(C["RED"], "#fff")}
         bg, fg = styles[kind]
         return tk.Button(parent, text=text, command=cmd, bg=bg, fg=fg, relief="flat", bd=0,
-                         padx=16, pady=9, cursor="hand2", activebackground=C["GOLD2"],
+                         padx=16, pady=9, cursor="hand2", activebackground=C["GOLD2"], activeforeground="#ffffff",
                          font=(UIFONT, 12, "bold"))
 
     def open_fda(self):
@@ -576,7 +576,7 @@ class Cleaner(tk.Tk):
         self._draw_gauge()
 
     def _trash_size(self):
-        threading.Thread(target=lambda: self.q.put(("trash", f"🗑  Trash: {human(dir_size(HOME/'.Trash'))}")),
+        threading.Thread(target=lambda: self.q.put(("trash", f"🗑  Recycle Bin: {human(dir_size(HOME/'.Trash'))}")),
                          daemon=True).start()
 
     # ── scan ──
@@ -623,12 +623,12 @@ class Cleaner(tk.Tk):
 
     def empty_trash(self):
         if self.busy: return
-        if not messagebox.askyesno("Empty Trash","Permanently empty the macOS Trash?"): return
+        if not messagebox.askyesno("Empty Recycle Bin","Permanently empty the Recycle Bin?"): return
         self.q.put(("busy", True))
         def run():
             try: ctypes.windll.shell32.SHEmptyRecycleBinW(None, None, 0x07)
             except Exception: pass
-            self.q.put(("trash","🗑  Trash: 0 B")); self.q.put(("status","✅ Trash emptied."))
+            self.q.put(("trash","🗑  Recycle Bin: 0 B")); self.q.put(("status","✅ Recycle Bin emptied."))
             self.q.put(("busy", False))
         threading.Thread(target=run, daemon=True).start()
 
@@ -696,13 +696,13 @@ class Cleaner(tk.Tk):
         picks = [fp for fp,v in self.big_vars.items() if v.get()]
         if not picks: messagebox.showinfo("ZH Cleaner","No files selected."); return
         tot = sum(sz for fp,sz,_ in self.big_files if fp in picks)
-        if not messagebox.askyesno("Move to Trash?",
-            f"Move {len(picks)} file(s) ({human(tot)}) to Trash?\nRecoverable from Trash."): return
+        if not messagebox.askyesno("Move to Recycle Bin?",
+            f"Move {len(picks)} file(s) ({human(tot)}) to the Recycle Bin?\nRecoverable from the Recycle Bin."): return
         self.q.put(("busy", True))
         def run():
             for fp in picks: move_to_trash(fp)
             self.q.put(("big", [x for x in self.big_files if x[0] not in picks]))
-            self.q.put(("status", f"✅ Moved {len(picks)} file(s) to Trash."))
+            self.q.put(("status", f"✅ Moved {len(picks)} file(s) to the Recycle Bin."))
             self.q.put(("busy", False)); self._trash_size()
         threading.Thread(target=run, daemon=True).start()
 
@@ -825,11 +825,11 @@ class Cleaner(tk.Tk):
         picks = [p for p,v in self.dupe_vars.items() if v.get()]
         if not picks: messagebox.showinfo("ZH PC Cleaner","No copies selected."); return
         if not messagebox.askyesno("Delete copies?",
-            f"Move {len(picks)} duplicate file(s) to Trash?\nRecoverable from Trash."): return
+            f"Move {len(picks)} duplicate file(s) to the Recycle Bin?\nRecoverable from the Recycle Bin."): return
         self.q.put(("busy", True))
         def run():
             for p in picks: move_to_trash(p)
-            self.q.put(("status", f"✅ {len(picks)} duplicate(s) → Trash."))
+            self.q.put(("status", f"✅ {len(picks)} duplicate(s) → Recycle Bin."))
             self.q.put(("busy", False)); self._trash_size()
             self.q.put(("rescan_dupes", None))
         threading.Thread(target=run, daemon=True).start()
@@ -1013,7 +1013,7 @@ class Cleaner(tk.Tk):
         self.key_entry.delete(0, "end"); self.key_entry.focus_set()
 
     def deactivate_license(self):
-        if not messagebox.askyesno("Deactivate", "Remove the license from this Mac? Pro features will lock."):
+        if not messagebox.askyesno("Deactivate", "Remove the license from this PC? Pro features will lock."):
             return
         self.lic = {"key": "", "plan": "free", "valid": False, "checked": 0}
         try: LIC_FILE.unlink()
@@ -1051,31 +1051,31 @@ class Cleaner(tk.Tk):
 
         tk.Label(inner, text="What is ZH PC Cleaner?", bg=C["SURF"], fg=C["TEXT"],
                  font=(UIFONT, 16, "bold")).pack(anchor="w", padx=14, pady=(14,2))
-        tk.Label(inner, text="A safe, simple Mac cleaner. It frees disk space by removing junk that "
-                 "your Mac rebuilds automatically — and never touches system files.",
+        tk.Label(inner, text="A safe, simple Windows cleaner. It frees disk space by removing junk that "
+                 "Windows rebuilds automatically — and never touches system files.",
                  bg=C["SURF"], fg=C["MUTED"], anchor="w", justify="left",
                  font=(UIFONT, 11), wraplength=520).pack(fill="x", padx=14)
 
-        section("🧹  Cleanup", "Deletes app caches, logs and browser caches. These regenerate on their "
+        section("🧹  Cleanup", "Deletes temp files, app caches and browser caches. These regenerate on their "
                 "own — safe to remove. Tick what you want and press “Clean Selected”.")
-        section("📦  Large Files", "Finds files over 100 MB in Downloads, Desktop, Documents & Movies. "
-                "Pick the ones you don't need — they go to the Trash (recoverable).")
-        section("🗑️  Uninstaller", "Removes an app AND its leftover files (caches, preferences, support "
-                "folders) that normally stay behind when you drag an app to the Trash.")
+        section("📦  Large Files", "Finds files over 100 MB in Downloads, Desktop, Documents, Videos & Pictures. "
+                "Pick the ones you don't need — they go to the Recycle Bin (recoverable).")
+        section("🗑️  Uninstaller", "Runs a program's uninstaller AND clears leftover AppData folders "
+                "(caches, settings) that normally stay behind after uninstalling.")
         section("👯  Duplicates", "Finds identical files (same content). Keeps the first copy, lets you "
-                "trash the extras to reclaim space.")
+                "send the extras to the Recycle Bin to reclaim space.")
         section("🛠  Maintenance — what each tool does",
-                "•  Free Up RAM — purges inactive memory so apps get more free RAM. Use when your Mac feels slow.\n"
                 "•  Flush DNS — clears the DNS cache. Fixes sites that won't load or point to an old server.\n"
-                "•  Reindex Spotlight — rebuilds the search index. Fixes Spotlight missing files or wrong results.\n"
-                "•  Rebuild Launch DB — fixes duplicate or wrong “Open With” app entries.\n\n"
-                "Some ask for your Mac password (normal for system tasks). You get a popup with the result.")
+                "•  Clear Update Cache — stops Windows Update, clears its download cache, restarts it (needs admin).\n"
+                "•  Empty Recycle Bin — permanently frees the space used by deleted files.\n"
+                "•  Disk Cleanup — opens the built-in Windows Disk Cleanup for a deeper clean.\n\n"
+                "Some need admin (UAC) — run the app as administrator for those.")
 
         section("🔒  Is it safe?", "Yes. ZH PC Cleaner only touches a fixed list of safe user folders. "
-                "Caches/logs are rebuilt by macOS; your own files go to the Trash so you can restore them. "
+                "Caches/temp are rebuilt by Windows; your own files go to the Recycle Bin so you can restore them. "
                 "It never deletes documents, photos or system files.")
-        section("💡  Seeing small cache sizes?", "Grant Full Disk Access so it can read all caches: "
-                "System Settings → Privacy & Security → Full Disk Access → + → add ZH PC Cleaner.")
+        section("💡  Run as administrator", "For the Update-cache and some system folders, right-click "
+                "ZH PC Cleaner → Run as administrator so it can clear everything.")
 
         # Branding footer
         brand = tk.Frame(inner, bg=C["SURF"]); brand.pack(fill="x", padx=14, pady=18)
