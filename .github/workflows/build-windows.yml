@@ -1,0 +1,44 @@
+name: Build Windows (EXE)
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps
+        run: python -m pip install --upgrade pyinstaller certifi pillow
+      - name: Icon (.ico)
+        run: |
+          python - <<'PY'
+          from PIL import Image
+          m = Image.open("assets/icon.png").convert("RGBA")
+          h = m.height; m = m.crop((0,0,h,h))
+          m.save("AppIcon.ico", sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
+          PY
+      - name: Read version
+        id: ver
+        shell: bash
+        run: echo "v=$(python -c "import re;print(re.search(r'APP_VERSION\s*=\s*\"([^\"]+)\"',open('zh_cleaner_win.py').read()).group(1))")" >> "$GITHUB_OUTPUT"
+      - name: Build .exe (PyInstaller)
+        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --name "ZH-PC-Cleaner" --icon AppIcon.ico --collect-data certifi zh_cleaner_win.py
+      - name: Rename with version
+        shell: bash
+        run: cp "dist/ZH-PC-Cleaner.exe" "dist/ZH-PC-Cleaner-${{ steps.ver.outputs.v }}.exe"
+      - name: Publish Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ZH PC Cleaner ${{ steps.ver.outputs.v }}
+          body_path: RELEASE-NOTES.md
+          files: dist/ZH-PC-Cleaner*.exe
