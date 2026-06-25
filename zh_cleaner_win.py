@@ -172,15 +172,26 @@ def list_apps():
 def bundle_id(app_path):
     return ""   # n/a on Windows
 
+# Vendor/system folders we must NEVER delete as "leftovers" (a loose substring match used to
+# nuke these when uninstalling an unrelated app — e.g. Adobe/Premiere data under AppData).
+PROTECTED = ("adobe", "microsoft", "google", "apple", "packages", "temp", "windows",
+             "commonfiles", "comms", "connecteddevices", "mozilla", "nvidia", "intel")
+
 def app_leftovers(app_name, app_path):
-    """Find leftover AppData/ProgramData folders matching the app name."""
+    """Find leftover AppData/ProgramData folders that belong to THIS app only."""
     name_l = app_name.lower().replace(" ", "")
     hits = []
+    if len(name_l) < 4:                      # too-short names match everything → skip
+        return hits
     for d in LEFTOVER_DIRS:
         if not d.exists(): continue
         try:
             for e in os.listdir(d):
-                if name_l and name_l in e.lower().replace(" ", ""):
+                el = e.lower().replace(" ", "")
+                if any(el.startswith(p) for p in PROTECTED):
+                    continue                  # protect vendor/system folders
+                # name-prefix match only — no loose substring (entry must BE / start with the app name)
+                if el == name_l or el.startswith(name_l + "-") or el.startswith(name_l + "_") or el.startswith(name_l + "."):
                     hits.append(d/e)
         except OSError:
             pass

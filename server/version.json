@@ -1,5 +1,5 @@
 {
-    "version": "1.0.2",
-    "download_url": "https://zhmotions.com/pccleaner/download",
-    "notes": "ZH PC Cleaner for Windows — clean temp/cache/browser junk, find large files, empty Recycle Bin, uninstall apps. Your Pro license works on Windows too."
+  "version": "1.0.3",
+  "download_url": "https://zhmotions.com/pccleaner/download",
+  "notes": "Safer uninstaller — removes only the selected app's own leftovers (never Adobe/Microsoft/system or other apps' data). Plus the usual cleanup, large files, Recycle Bin, uninstall."
 }
