@@ -42,7 +42,7 @@ elif "__file__" in globals():
 else:
     APP_DIR = Path.cwd()
 
-APP_VERSION = "1.0.3"   # Windows build
+APP_VERSION = "1.0.4"   # Windows build
 SITE        = "https://www.zhmotions.com"
 WIN_DL      = "https://zhmotions.com/pccleaner/download"
 # Same update system as ZH Downloader: zhmotions.com FIRST, GitHub as fallback.
@@ -120,12 +120,20 @@ def move_to_trash(path):
     except Exception:
         pass
 
-def clear_contents(path):
-    """Delete a dir's contents (keep the dir). Locked/in-use files are skipped, never freezes."""
+# Temp/cache subfolders we must NEVER wipe — they hold Adobe CEP extension data
+# (localStorage under Temp\cep_cache), where panels like ZH Script Studio keep their
+# license/activation. Wiping TEMP blindly logs the user out of every CEP extension.
+CACHE_PROTECT = {"cep_cache", "CSXS", "Adobe", "com.adobe.cep", "cep"}
+
+def clear_contents(path, protect=None):
+    """Delete a dir's contents (keep the dir). Locked/in-use files are skipped, never freezes.
+    `protect` = top-level entry names to KEEP (e.g. Adobe CEP data → preserves licenses)."""
     p = str(path)
     if not os.path.isdir(p):
         return
     for e in os.listdir(p):
+        if protect and e in protect:
+            continue
         fp = os.path.join(p, e)
         try:
             if os.path.isdir(fp) and not os.path.islink(fp):
@@ -279,17 +287,24 @@ CATEGORIES = {
     "dev":     ("⚙️", "Developer Junk", "npm · pip · nuget · yarn",
                 [ROAMING/"npm-cache", LOCAL/"pip/Cache", HOME/".nuget/packages",
                  LOCAL/"Yarn/Cache", LOCAL/"NuGet/Cache"]),
+    # Adobe Premiere/AE media cache (cfa/pek/peak) — big space, regenerates. Does NOT touch
+    # Adobe CEP extension data (licenses) — that lives under Adobe/CEP, not Common/Media Cache.
+    "adobe":   ("🎬", "Adobe Media Cache", "Premiere · After Effects",
+                [ROAMING/"Adobe/Common/Media Cache Files",
+                 ROAMING/"Adobe/Common/Media Cache",
+                 ROAMING/"Adobe/Common/Peak Files"]),
 }
 SCAN_DIRS = [HOME/"Downloads", HOME/"Desktop", HOME/"Documents", HOME/"Videos", HOME/"Pictures"]
 BIG_THRESHOLD = 100 * 1024 * 1024
 
 # ring segment + card accent per category — monochromatic maroon shades
-SEG = {"system":"#5E1622", "browser":"#8A2A38", "dev":"#B5606A"}
+SEG = {"system":"#5E1622", "browser":"#8A2A38", "dev":"#B5606A", "adobe":"#C77B4A"}
 
 CARD_HELP = {
     "system":  "App caches & temp files Windows rebuilds automatically. Safe to delete — frees space, apps just re-cache.",
     "browser": "Cached web data for Chrome/Safari/Firefox. You stay logged in; pages just re-download once.",
     "dev":     "Build caches from npm, pip, Homebrew, Xcode. Safe — they regenerate on next build/install.",
+    "adobe":   "Premiere/After Effects media cache (cfa/pek/peak files). Safe to clear — Adobe rebuilds them on next preview. Does NOT remove your extension licenses or settings.",
 }
 
 
@@ -621,7 +636,9 @@ class Cleaner(tk.Tk):
                     self.q.put(("status", f"Cleaning {CATEGORIES[k][1]}…"))   # live per-category
                     freed += self.sizes.get(k, 0)                             # scanned size, no re-du
                     for p in CATEGORIES[k][3]:
-                        if p.exists(): clear_contents(p)
+                        # System Junk clears TEMP → protect Adobe CEP extension data
+                        # (licenses in Temp\cep_cache) from being wiped. Others clear fully.
+                        if p.exists(): clear_contents(p, protect=CACHE_PROTECT if k == "system" else None)
                     self.q.put(("size", (k, 0)))
             except Exception as e:
                 self.q.put(("status", f"⚠ Clean error: {e}"))
