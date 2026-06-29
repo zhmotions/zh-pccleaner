@@ -30,7 +30,10 @@ jobs:
       - name: Read version
         id: ver
         shell: bash
-        run: echo "v=$(python -c "import re;print(re.search(r'APP_VERSION\s*=\s*\"([^\"]+)\"',open('zh_cleaner_win.py').read()).group(1))")" >> "$GITHUB_OUTPUT"
+        run: |
+          v=$(grep -oE 'APP_VERSION[[:space:]]*=[[:space:]]*"[0-9]+\.[0-9]+\.[0-9]+"' zh_cleaner_win.py | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          test -n "$v" || { echo "ERROR: could not read APP_VERSION"; exit 1; }
+          echo "v=$v" >> "$GITHUB_OUTPUT"
       - name: Build .exe (PyInstaller)
         run: python -m PyInstaller --noconfirm --clean --windowed --onefile --name "ZH-PC-Cleaner" --icon AppIcon.ico --collect-data certifi zh_cleaner_win.py
       - name: Rename with version

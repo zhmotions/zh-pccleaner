@@ -1,8 +1,10 @@
-import sys
+import sys, re
 from cx_Freeze import setup, Executable
 
 APP = "ZH PC Cleaner"
-VERSION = "1.0.5"
+# Read the single source of truth so the .msi version never drifts from the app.
+VERSION = re.search(r'APP_VERSION\s*=\s*"([^"]+)"',
+                    open("zh_cleaner_win.py", encoding="utf-8").read()).group(1)
 
 build_exe_options = {
     "packages": ["tkinter", "ctypes", "ssl", "urllib", "hashlib", "json", "threading", "queue", "shutil"],
