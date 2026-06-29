@@ -42,7 +42,7 @@ elif "__file__" in globals():
 else:
     APP_DIR = Path.cwd()
 
-APP_VERSION = "1.0.5"   # Windows build
+APP_VERSION = "1.0.6"   # Windows build
 SITE        = "https://www.zhmotions.com"
 WIN_DL      = "https://zhmotions.com/pccleaner/download"
 # Same update system as ZH Downloader: zhmotions.com FIRST, GitHub as fallback.
@@ -637,19 +637,32 @@ class Cleaner(tk.Tk):
         self.q.put(("busy", True))
         def run():
             freed = 0
+            remaining_tot = 0
             try:
                 for k in picks:
                     self.q.put(("status", f"Cleaning {CATEGORIES[k][1]}…"))   # live per-category
-                    freed += self.sizes.get(k, 0)                             # scanned size, no re-du
+                    before = sum(dir_size(p) for p in CATEGORIES[k][3] if p.exists())
                     for p in CATEGORIES[k][3]:
                         # System Junk clears TEMP → protect Adobe CEP extension data
                         # (licenses in Temp\cep_cache) from being wiped. Others clear fully.
                         if p.exists(): clear_contents(p, protect=CACHE_PROTECT if k == "system" else None)
-                    self.q.put(("size", (k, 0)))
+                    # Re-measure ACTUAL remaining — never report a fake "0".
+                    # What stays = protected Adobe data, files locked by running apps,
+                    # or cache an open app rebuilt instantly. Honest numbers only.
+                    after = sum(dir_size(p) for p in CATEGORIES[k][3] if p.exists())
+                    freed += max(0, before - after)
+                    remaining_tot += after
+                    self.q.put(("size", (k, after)))
             except Exception as e:
                 self.q.put(("status", f"⚠ Clean error: {e}"))
             finally:                                                          # ALWAYS finish
-                self.q.put(("status", f"✅ Cleaned. Freed {human(freed)}."))
+                if remaining_tot > 5 * 1024 * 1024:   # >5 MB still there → explain why
+                    msg = (f"✅ Freed {human(freed)}. {human(remaining_tot)} still in use — "
+                           f"close Chrome/Edge/Adobe (they rebuild cache live) & re-clean. "
+                           f"Adobe extension data is protected on purpose.")
+                else:
+                    msg = f"✅ Cleaned. Freed {human(freed)}."
+                self.q.put(("status", msg))
                 self.q.put(("clean_done", freed))
                 self.q.put(("busy", False))
                 self._trash_size()
