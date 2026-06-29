@@ -42,7 +42,7 @@ elif "__file__" in globals():
 else:
     APP_DIR = Path.cwd()
 
-APP_VERSION = "1.0.6"   # Windows build
+APP_VERSION = "1.0.7"   # Windows build
 SITE        = "https://www.zhmotions.com"
 WIN_DL      = "https://zhmotions.com/pccleaner/download"
 # Same update system as ZH Downloader: zhmotions.com FIRST, GitHub as fallback.
@@ -128,7 +128,10 @@ def move_to_trash(path):
 # Temp/cache subfolders we must NEVER wipe — they hold Adobe CEP extension data
 # (localStorage under Temp\cep_cache), where panels like ZH Script Studio keep their
 # license/activation. Wiping TEMP blindly logs the user out of every CEP extension.
-CACHE_PROTECT = {"cep_cache", "CSXS", "Adobe", "com.adobe.cep", "cep"}
+# NOTE: "Adobe" is deliberately NOT here — Adobe-named cache/temp folders are pure
+# regenerable render cache and hold no license. The CEP license lives in the separate
+# cep_cache / CSXS / com.adobe.cep entries, which we keep.
+CACHE_PROTECT = {"cep_cache", "CSXS", "com.adobe.cep", "cep"}
 
 def clear_contents(path, protect=None):
     """Delete a dir's contents (keep the dir). Locked/in-use files are skipped, never freezes.
