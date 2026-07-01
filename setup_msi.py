@@ -14,6 +14,15 @@ build_exe_options = {
     "excludes": ["test", "unittest", "pydoc_data"],
 }
 
+# AUTO-REMOVE OLD VERSION on install:
+#   The stable `upgrade_code` (never change it) + a HIGHER `version` = a Windows MAJOR UPGRADE.
+#   On install, MSI finds any prior version carrying this same upgrade_code and uninstalls it first,
+#   then installs the new one — so the user never ends up with two copies. This ONLY fires when the
+#   version number goes up, which is why APP_VERSION must be bumped every release.
+#   NOTE: a copy that was installed by an OLD build WITHOUT this upgrade_code can't be auto-detected —
+#   remove that one once via Settings → Apps (or the MS "Program Install and Uninstall" troubleshooter);
+#   every install after that upgrades cleanly. Also quit the app before installing (a running .exe locks
+#   its files and blocks the replace).
 bdist_msi_options = {
     "upgrade_code": "{3F2A1B6C-9D4E-4A7B-8C1D-2E5F6A7B8C9D}",
     "add_to_path": False,

@@ -42,7 +42,7 @@ elif "__file__" in globals():
 else:
     APP_DIR = Path.cwd()
 
-APP_VERSION = "1.0.7"   # Windows build
+APP_VERSION = "1.1.0"   # Windows build — bump EVERY release so the MSI major-upgrade removes the old one
 SITE        = "https://www.zhmotions.com"
 WIN_DL      = "https://zhmotions.com/pccleaner/download"
 # Same update system as ZH Downloader: zhmotions.com FIRST, GitHub as fallback.
@@ -109,7 +109,9 @@ def dir_size(path):
     return total
 
 def move_to_trash(path):
-    """Send a file/folder to the Windows Recycle Bin (recoverable)."""
+    """Send a file/folder to the Windows Recycle Bin (recoverable). Returns True only if it's
+    actually gone afterwards — so callers report what couldn't be removed (in use / permission)
+    instead of a false success."""
     p = os.path.abspath(str(path))
     try:
         from ctypes import wintypes
@@ -124,6 +126,7 @@ def move_to_trash(path):
         ctypes.windll.shell32.SHFileOperationW(ctypes.byref(op))
     except Exception:
         pass
+    return not os.path.exists(p)
 
 # Temp/cache subfolders we must NEVER wipe — they hold Adobe CEP extension data
 # (localStorage under Temp\cep_cache), where panels like ZH Script Studio keep their
@@ -376,8 +379,11 @@ class Cleaner(tk.Tk):
             except Exception:
                 pass
         name = tk.Frame(head, bg=C["HEADER"]); name.pack(side="left")
-        tk.Label(name, text="ZH PC Cleaner", bg=C["HEADER"], fg=C["MAROON"],
-                 font=(UIFONT, 19, "bold")).pack(anchor="w")
+        titlerow = tk.Frame(name, bg=C["HEADER"]); titlerow.pack(anchor="w")
+        tk.Label(titlerow, text="ZH PC Cleaner", bg=C["HEADER"], fg=C["MAROON"],
+                 font=(UIFONT, 19, "bold")).pack(side="left")
+        tk.Label(titlerow, text=f"  v{APP_VERSION}", bg=C["HEADER"], fg=C["MUTED"],
+                 font=(UIFONT, 11, "bold")).pack(side="left", pady=(6,0))
         tk.Label(name, text="keep your PC clean", bg=C["HEADER"], fg=C["MUTED"],
                  font=(UIFONT, 10)).pack(anchor="w", pady=(1,0))
         # subtle bottom divider
@@ -399,7 +405,7 @@ class Cleaner(tk.Tk):
             b.bind("<Enter>", lambda e,k=key,w=b: (w.config(bg="#e3d0d4") if k!=self.active_view else None))
             b.bind("<Leave>", lambda e,k=key,w=b: (w.config(bg=C["SIDEBAR"]) if k!=self.active_view else None))
             self.nav_btns[key] = b
-        tk.Label(side, text="v1.0 · safe mode", bg=C["SIDEBAR"], fg=C["BORDER"],
+        tk.Label(side, text=f"v{APP_VERSION} · safe mode", bg=C["SIDEBAR"], fg=C["BORDER"],
                  font=(UIFONT, 9)).pack(side="bottom", pady=12)
 
         # Content area
@@ -660,9 +666,15 @@ class Cleaner(tk.Tk):
                 self.q.put(("status", f"⚠ Clean error: {e}"))
             finally:                                                          # ALWAYS finish
                 if remaining_tot > 5 * 1024 * 1024:   # >5 MB still there → explain why
-                    msg = (f"✅ Freed {human(freed)}. {human(remaining_tot)} still in use — "
-                           f"close Chrome/Edge/Adobe (they rebuild cache live) & re-clean. "
-                           f"Adobe extension data is protected on purpose.")
+                    if freed < remaining_tot * 0.2:
+                        # Barely anything went down → an open app (Chrome/Edge/Adobe) rebuilds its cache
+                        # the instant it's deleted, or the files are locked/in use. Tell the user plainly.
+                        msg = (f"⚠ Freed {human(freed)} — most of it came back. Close Chrome / Edge / "
+                               f"Adobe (they rebuild cache live), then re-clean. Locked files are skipped.")
+                    else:
+                        msg = (f"✅ Freed {human(freed)}. {human(remaining_tot)} still in use — "
+                               f"close Chrome/Edge/Adobe (they rebuild cache live) & re-clean. "
+                               f"Adobe extension data is protected on purpose.")
                 else:
                     msg = f"✅ Cleaned. Freed {human(freed)}."
                 self.q.put(("status", msg))
@@ -750,9 +762,11 @@ class Cleaner(tk.Tk):
             f"Move {len(picks)} file(s) ({human(tot)}) to the Recycle Bin?\nRecoverable from the Recycle Bin."): return
         self.q.put(("busy", True))
         def run():
-            for fp in picks: move_to_trash(fp)
-            self.q.put(("big", [x for x in self.big_files if x[0] not in picks]))
-            self.q.put(("status", f"✅ Moved {len(picks)} file(s) to the Recycle Bin."))
+            okp = [fp for fp in picks if move_to_trash(fp)]
+            fail = len(picks) - len(okp)
+            self.q.put(("big", [x for x in self.big_files if x[0] not in okp]))
+            self.q.put(("status", f"✅ Moved {len(okp)} file(s) to the Recycle Bin."
+                        + (f" ⚠ {fail} couldn't be moved (in use / permission)." if fail else "")))
             self.q.put(("busy", False)); self._trash_size()
         threading.Thread(target=run, daemon=True).start()
 
@@ -821,8 +835,10 @@ class Cleaner(tk.Tk):
         def run():
             try: subprocess.Popen(path, shell=True)   # path = the program's UninstallString
             except Exception: pass
-            for p in left: move_to_trash(str(p))
-            self.q.put(("status", f"✅ {name}: uninstaller launched · {len(left)} leftover(s) → Recycle Bin."))
+            done = sum(1 for p in left if move_to_trash(str(p)))
+            fail = len(left) - done
+            self.q.put(("status", f"✅ {name}: uninstaller launched · {done}/{len(left)} leftover(s) → Recycle Bin."
+                        + (f" ⚠ {fail} couldn't be removed (in use / needs admin)." if fail else "")))
             self.q.put(("busy", False)); self._trash_size()
         threading.Thread(target=run, daemon=True).start()
 
@@ -878,8 +894,10 @@ class Cleaner(tk.Tk):
             f"Move {len(picks)} duplicate file(s) to the Recycle Bin?\nRecoverable from the Recycle Bin."): return
         self.q.put(("busy", True))
         def run():
-            for p in picks: move_to_trash(p)
-            self.q.put(("status", f"✅ {len(picks)} duplicate(s) → Recycle Bin."))
+            ok = sum(1 for p in picks if move_to_trash(p))
+            fail = len(picks) - ok
+            self.q.put(("status", f"✅ {ok} duplicate(s) → Recycle Bin."
+                        + (f" ⚠ {fail} couldn't be moved (in use / permission)." if fail else "")))
             self.q.put(("busy", False)); self._trash_size()
             self.q.put(("rescan_dupes", None))
         threading.Thread(target=run, daemon=True).start()
@@ -1231,7 +1249,7 @@ class Cleaner(tk.Tk):
         if self.logo_img:
             tk.Label(brand, image=self.logo_img, bg=C["SURF"]).pack(side="left", padx=(0,10))
         col = tk.Frame(brand, bg=C["SURF"]); col.pack(side="left")
-        tk.Label(col, text="ZH PC Cleaner  ·  v1.0", bg=C["SURF"], fg=C["MAROON"],
+        tk.Label(col, text=f"ZH PC Cleaner  ·  v{APP_VERSION}", bg=C["SURF"], fg=C["MAROON"],
                  font=(UIFONT, 12, "bold")).pack(anchor="w")
         tk.Label(col, text="Made by ZH Motions", bg=C["SURF"], fg=C["MUTED"],
                  font=(UIFONT, 10)).pack(anchor="w")

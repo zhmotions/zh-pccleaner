@@ -1,9 +1,16 @@
-# ZH PC Cleaner — Windows
+# ZH PC Cleaner 1.1.0
 
-Clean your Windows PC safely: temp & cache junk, browser caches, large files, duplicates, Recycle Bin, app uninstaller, and quick maintenance.
+## Installer
+- New install now AUTO-REMOVES the old version (MSI major-upgrade via stable upgrade_code + version bump). No more duplicate installs.
+- Quit the app before installing (a running .exe locks its files).
+- A copy left by a pre-1.1.0 build (no upgrade_code) must be removed once via Settings → Apps; every install after that upgrades cleanly.
 
-- Deletions go to the **Recycle Bin** (recoverable)
-- **Large Files** shows full path + Reveal in Explorer
-- Pro features unlocked by your ZH license key (works on Mac & Windows)
+## Reliability
+- Move-to-Recycle-Bin now reports what it couldn't remove (in use / needs admin) instead of a false "done".
+- Uninstaller, large-file trash, and duplicate delete all show honest counts ("⚠ N couldn't be moved").
+- Cache clean says plainly when caches came back (an open Chrome/Edge/Adobe rebuilds them live) or files were locked.
 
-**Install:** download `ZH-PC-Cleaner.exe`, run it. Unsigned → SmartScreen: *More info → Run anyway* (one time).
+## UI
+- Version now shown in the header, sidebar, and About (v1.1.0).
+
+Requires Windows 10/11.
