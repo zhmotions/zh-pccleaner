@@ -43,5 +43,6 @@ setup(
         icon="AppIcon.ico",
         shortcut_name="ZH PC Cleaner",
         shortcut_dir="ProgramMenuFolder",
+        uac_admin=True,   # request admin on launch → can clear Windows\Temp, Prefetch, other-user junk
     )],
 )

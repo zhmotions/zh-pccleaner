@@ -35,7 +35,7 @@ jobs:
           test -n "$v" || { echo "ERROR: could not read APP_VERSION"; exit 1; }
           echo "v=$v" >> "$GITHUB_OUTPUT"
       - name: Build .exe (PyInstaller)
-        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --name "ZH-PC-Cleaner" --icon AppIcon.ico --collect-data certifi zh_cleaner_win.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --uac-admin --name "ZH-PC-Cleaner" --icon AppIcon.ico --collect-data certifi zh_cleaner_win.py
       - name: Rename with version
         shell: bash
         run: cp "dist/ZH-PC-Cleaner.exe" "dist/ZH-PC-Cleaner-${{ steps.ver.outputs.v }}.exe"

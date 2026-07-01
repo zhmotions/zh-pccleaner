@@ -1,16 +1,13 @@
-# ZH PC Cleaner 1.1.0
+# ZH PC Cleaner 1.1.1
 
-## Installer
-- New install now AUTO-REMOVES the old version (MSI major-upgrade via stable upgrade_code + version bump). No more duplicate installs.
-- Quit the app before installing (a running .exe locks its files).
-- A copy left by a pre-1.1.0 build (no upgrade_code) must be removed once via Settings → Apps; every install after that upgrades cleanly.
+## Cleans system junk now (admin)
+- App requests Administrator on launch (UAC) → can clear Windows\Temp, Prefetch, and other locked
+  system caches. Previously these were skipped without admin, so a clean could free ~0.
+- Reminder: close Chrome / Edge / Adobe before cleaning — an open browser locks its cache (rebuilds it live).
 
-## Reliability
-- Move-to-Recycle-Bin now reports what it couldn't remove (in use / needs admin) instead of a false "done".
-- Uninstaller, large-file trash, and duplicate delete all show honest counts ("⚠ N couldn't be moved").
-- Cache clean says plainly when caches came back (an open Chrome/Edge/Adobe rebuilds them live) or files were locked.
-
-## UI
-- Version now shown in the header, sidebar, and About (v1.1.0).
+## From 1.1.0 (carried forward)
+- Installer auto-removes the old version (MSI major-upgrade).
+- Honest delete/uninstall reporting (shows what couldn't be removed).
+- Version shown in the app.
 
 Requires Windows 10/11.

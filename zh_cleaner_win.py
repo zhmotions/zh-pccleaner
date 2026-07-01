@@ -42,7 +42,7 @@ elif "__file__" in globals():
 else:
     APP_DIR = Path.cwd()
 
-APP_VERSION = "1.1.0"   # Windows build — bump EVERY release so the MSI major-upgrade removes the old one
+APP_VERSION = "1.1.1"   # Windows build — bump EVERY release so the MSI major-upgrade removes the old one
 SITE        = "https://www.zhmotions.com"
 WIN_DL      = "https://zhmotions.com/pccleaner/download"
 # Same update system as ZH Downloader: zhmotions.com FIRST, GitHub as fallback.
