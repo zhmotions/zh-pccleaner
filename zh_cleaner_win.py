@@ -42,7 +42,7 @@ elif "__file__" in globals():
 else:
     APP_DIR = Path.cwd()
 
-APP_VERSION = "1.1.1"   # Windows build — bump EVERY release so the MSI major-upgrade removes the old one
+APP_VERSION = "1.1.2"   # Windows build — bump EVERY release so the MSI major-upgrade removes the old one
 SITE        = "https://www.zhmotions.com"
 WIN_DL      = "https://zhmotions.com/pccleaner/download"
 # Same update system as ZH Downloader: zhmotions.com FIRST, GitHub as fallback.
@@ -57,6 +57,9 @@ LIC_FILE      = HOME/".config/zhmaccleaner/license.json"
 PRO_FEATURES  = {"uninstall", "dupes", "maint"}     # locked until Pro
 # ── In-app review prompt (after a few days of use) ──
 REVIEW_URL    = "https://zhmotions.com/api.php?action=review_submit"
+# Hostinger's firewall serves flagged IPs a 403 HTML challenge on direct POSTs (the "network problem"
+# reports) — the Cloudflare Worker relay forwards from a clean IP, same as SMS/STT.
+REVIEW_URL_FALLBACK = "https://api-relay-2.zhmotionspanel.workers.dev/api.php?action=review_submit"
 REVIEW_FILE   = HOME/".config/zhpccleaner/review.json"
 REVIEW_AFTER_DAYS = 3
 APP_SLUG      = "pccleaner"
@@ -1085,20 +1088,26 @@ class Cleaner(tk.Tk):
             if len(name) < 2: msg.config(text="Please enter your name.", fg=C["GOLD"]); return
             msg.config(text="Sending…", fg=C["MUTED"])
             def run():
-                ok = False
-                try:
-                    body = urllib.parse.urlencode({"app": APP_SLUG, "name": name, "rating": rating, "comment": comment}).encode()
-                    req = urllib.request.Request(REVIEW_URL, data=body,
-                          headers={"User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded"})
-                    data = json.loads(urllib.request.urlopen(req, timeout=15, context=SSL_CTX).read().decode())
-                    ok = (data.get("status") == "success")
-                except Exception: ok = False
+                ok = False; err = "Couldn't send — check your internet and retry."
+                body = urllib.parse.urlencode({"app": APP_SLUG, "name": name, "rating": rating, "comment": comment}).encode()
+                # Direct first; if the host firewall serves its HTML challenge (JSON parse fails /
+                # HTTPError), retry through the clean-IP Worker relay.
+                for url in (REVIEW_URL, REVIEW_URL_FALLBACK):
+                    try:
+                        req = urllib.request.Request(url, data=body,
+                              headers={"User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded"})
+                        data = json.loads(urllib.request.urlopen(req, timeout=15, context=SSL_CTX).read().decode())
+                        ok = (data.get("status") == "success")
+                        if not ok and data.get("message"): err = str(data.get("message"))   # real reason (e.g. already reviewed), not a fake network error
+                        break                       # got a JSON answer (success OR rejection) → stop
+                    except Exception:
+                        ok = False                  # challenge/HTML/network → try the relay next
                 def done():
                     if ok:
                         st = self._review_state(); st["status"] = "done"; self._review_save(st)
                         msg.config(text="Thank you! ★", fg=C["GOLD"]); win.after(900, win.destroy)
                     else:
-                        msg.config(text="Couldn't send — check internet and retry.", fg=C["RED"])
+                        msg.config(text=err, fg=C["RED"])
                 self.after(0, done)
             threading.Thread(target=run, daemon=True).start()
 

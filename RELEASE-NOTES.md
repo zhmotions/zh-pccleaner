@@ -1,13 +1,10 @@
-# ZH PC Cleaner 1.1.1
+# ZH PC Cleaner 1.1.2
 
-## Cleans system junk now (admin)
-- App requests Administrator on launch (UAC) → can clear Windows\Temp, Prefetch, and other locked
-  system caches. Previously these were skipped without admin, so a clean could free ~0.
-- Reminder: close Chrome / Edge / Adobe before cleaning — an open browser locks its cache (rebuilds it live).
+## Review popup
+- "Network problem" on posting a review fixed: the app now retries through a clean-IP relay when the
+  host firewall blocks the direct request, and shows the server's real reply (e.g. "already reviewed")
+  instead of a generic network error.
 
-## From 1.1.0 (carried forward)
-- Installer auto-removes the old version (MSI major-upgrade).
-- Honest delete/uninstall reporting (shows what couldn't be removed).
-- Version shown in the app.
-
-Requires Windows 10/11.
+## From 1.1.1 (carried forward)
+- Runs as Administrator → clears Windows\Temp, Prefetch and other locked system junk.
+- Installer auto-removes the old version. Honest delete/uninstall reporting.
