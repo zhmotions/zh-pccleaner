@@ -1,10 +1,5 @@
-# ZH PC Cleaner 1.1.2
+# ZH PC Cleaner 1.1.3
 
-## Review popup
-- "Network problem" on posting a review fixed: the app now retries through a clean-IP relay when the
-  host firewall blocks the direct request, and shows the server's real reply (e.g. "already reviewed")
-  instead of a generic network error.
-
-## From 1.1.1 (carried forward)
-- Runs as Administrator → clears Windows\Temp, Prefetch and other locked system junk.
-- Installer auto-removes the old version. Honest delete/uninstall reporting.
+- Update check fixed: the host firewall 403s the app's direct check for many users — now falls back to GitHub Releases.
+- Pro activation more reliable: license verify retries through a clean-IP relay when the direct request is blocked.
+- Carried: admin clean (Windows\Temp, Prefetch), installer auto-removes old version, review relay fallback, honest reporting.
